@@ -1,4 +1,4 @@
-# README for GPIO State Monitoring
+# README for GPIO State Monitoring Problem Statement 1
 
 ## Overview
 
@@ -83,3 +83,76 @@ if (g_AppDIpinSts & (1 << pin_index)) {
 ## Conclusion
 
 This GPIO state monitoring system is designed to provide reliable readings from digital input pins by implementing a consistency check mechanism. It is suitable for applications where noise and transient states may affect the accuracy of pin readings.
+
+
+
+
+# FreeRTOS Queue and Priority Management Example Problem Statement 2 
+
+This project demonstrates the usage of queues and task priority management in FreeRTOS, a real-time operating system for embedded systems.
+
+## Overview
+
+The code sets up two tasks that communicate with each other using a queue. One task, `DataSenderTask`, continuously sends data to the queue, while the other task, `DataReceiverTask`, receives and processes the data.
+
+The `DataReceiverTask` can dynamically adjust its own priority based on the received data value. It can also delete itself based on specific data IDs.
+
+## Prerequisites
+
+- ARM Cortex-M microcontroller or development board
+- FreeRTOS library
+- C compiler (e.g., GCC, IAR, or Keil)
+
+## Usage
+
+1. Include the necessary FreeRTOS header files in your project:
+   - `data_types.h` (for custom data types)
+   - `FreeRTOS.h` (for FreeRTOS kernel)
+   - `task.h` (for task management)
+   - `queue.h` (for queue management)
+
+2. Define the global variables `GlobalDataID` and `GlobalDataValue` to hold the data to be sent.
+
+3. Create a queue handle `DataQueue` for inter-task communication.
+
+4. Implement the `DataSenderTask` and `DataReceiverTask` functions:
+   - `DataSenderTask` sends data to the queue at regular intervals.
+   - `DataReceiverTask` receives data from the queue, prints it, and manages its own priority based on the received data value.
+
+5. In the `main` function:
+   - Initialize the hardware and system settings.
+   - Initialize the FreeRTOS kernel using `osKernelInitialize()`.
+   - Create the `DataQueue` using `xQueueCreate()`.
+   - Create the `DataSenderTask` and `DataReceiverTask` using `osThreadNew()`.
+   - Start the FreeRTOS scheduler using `osKernelStart()`.
+
+6. Build and run the project on your target microcontroller.
+
+## Functionality
+
+1. `DataSenderTask` sends data to the queue every 500 milliseconds, using the values of `GlobalDataID` and `GlobalDataValue`.
+
+2. `DataReceiverTask` receives data from the queue and prints the received data ID and value.
+
+3. Based on the received data ID:
+   - If the ID is 0, the task deletes itself using `vTaskDelete()`.
+   - If the ID is 1, the task manages its own priority:
+     - If the data value is 0, it increases its priority by 2 using `vTaskPrioritySet()`.
+     - If the data value is 1, it decreases its priority back to the initial value if it was previously increased.
+     - If the data value is 2, it deletes itself using `vTaskDelete()`.
+
+## Customization
+
+You can customize the project by modifying the following:
+
+- Change the data sent by `DataSenderTask` by updating `GlobalDataID` and `GlobalDataValue`.
+- Modify the priority management logic in `DataReceiverTask` to suit your specific requirements.
+- Add more tasks or queues as needed for your application.
+
+## Contributing
+
+If you find any issues or have suggestions for improvements, feel free to create a new issue or submit a pull request on the project's GitHub repository.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
