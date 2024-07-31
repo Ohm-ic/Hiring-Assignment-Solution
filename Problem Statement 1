@@ -1,0 +1,41 @@
+#define NUM_INPUTS 8
+#define CONSISTENCY_CHECK 10
+
+volatile uint8_t g_AppDIpinSts = 0x00;
+uint8_t g_ReadDIpinSts;
+
+struct GpioState
+{
+  uint8_t consistent_count;
+  uint8_t last_pin_state;
+};
+
+volatile struct GpioState pinStatus[NUM_INPUTS] = {0}; 
+
+int ISR_DIsampling()
+{
+  uint8_t current_pin_states = g_ReadDIpinSts;
+
+  for (int i = 0; i < NUM_INPUTS; i++) {
+    uint8_t current_pin_state = (current_pin_states >> i) & 0x01;
+  
+    if (current_pin_state == pinStatus[i].last_pin_state) {
+      pinStatus[i].consistent_count++;
+    } else {
+      pinStatus[i].consistent_count = 0;
+    }
+
+  if (pinStatus[i].consistent_count >= CONSISTENCY_CHECK) {
+    if (current_pin_state) {
+        g_AppDIpinSts |= (1 << i);
+    } else {
+        g_AppDIpinSts &= ~(1 << i);
+    }
+    pinStatus[i].consistent_count = 0;
+  }
+
+    pinStatus[i].last_pin_state = current_pin_state;
+  }
+
+  return 0;
+}
