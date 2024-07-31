@@ -1,0 +1,93 @@
+#include "data_types.h"   // Include custom data types
+#include "FreeRTOS.h"     // Include FreeRTOS header
+#include "task.h"         // Include task management header
+#include "queue.h"        // Include queue management header
+
+// Global variables to hold data
+extern uint8_t GlobalDataID;   // Data identifier
+extern int32_t GlobalDataValue; // Data value associated with the identifier
+
+// Queue handle for communication between tasks
+QueueHandle_t DataQueue;
+
+// Task 1: Responsible for sending data
+void DataSenderTask(void *pvParameters) {
+    Data_t data; // Structure to hold data to be sent
+
+    for (;;) { // Infinite loop to keep sending data
+        // Populate the data structure with global values
+        data.dataID = GlobalDataID;
+        data.DataValue = GlobalDataValue;
+
+        // Send the data to the queue
+        xQueueSend(DataQueue, &data, portMAX_DELAY);
+
+        // Wait for half a second before sending the next data
+        vTaskDelay(pdMS_TO_TICKS(500));
+    }
+}
+
+// Task 2: Responsible for receiving and processing data
+void DataReceiverTask(void *pvParameters) {
+    Data_t receivedData; // Structure to hold received data
+    TaskHandle_t currentTask = xTaskGetCurrentTaskHandle(); // Get handle for the current task
+    UBaseType_t initialPriority = uxTaskPriorityGet(currentTask); // Store the initial priority
+
+    for (;;) { // Infinite loop to keep receiving data
+        // Wait for data to arrive in the queue
+        if (xQueueReceive(DataQueue, &receivedData, portMAX_DELAY)) {
+            // Print the received data for debugging
+            printf("Received Data - ID: %d, Value: %ld\n", receivedData.dataID, receivedData.DataValue);
+
+            // Handle the received data based on its ID
+            switch (receivedData.dataID) {
+                case 0: // If ID is 0, delete this task
+                    vTaskDelete(currentTask);
+                    return;
+
+                case 1: // If ID is 1, manage task priority
+                    if (receivedData.DataValue == 0) {
+                        // Increase priority if DataValue is 0
+                        vTaskPrioritySet(currentTask, initialPriority + 2);
+                    } else if (receivedData.DataValue == 1) {
+                        // Decrease priority back to initial if DataValue is 1
+                        if (uxTaskPriorityGet(currentTask) > initialPriority) {
+                            vTaskPrioritySet(currentTask, initialPriority);
+                        }
+                    } else if (receivedData.DataValue == 2) {
+                        // If DataValue is 2, delete this task
+                        vTaskDelete(currentTask);
+                        return;
+                    }
+                    break;
+
+                default:
+                    // Handle unexpected data IDs if necessary
+                    break;
+            }
+        }
+    }
+}
+
+// Main function: Entry point of the program
+int main(void) {
+    // Initialize the hardware and system settings
+    HAL_Init();
+    SystemClock_Config();
+
+    // Initialize the FreeRTOS kernel
+    osKernelInitialize();
+
+    // Create a queue with space for 5 messages of type Data_t
+    DataQueue = xQueueCreate(5, sizeof(Data_t));
+
+    // Create the data sender and receiver tasks
+    osThreadNew(DataSenderTask, NULL, NULL);
+    osThreadNew(DataReceiverTask, NULL, NULL);
+
+    // Start the FreeRTOS scheduler to manage tasks
+    osKernelStart();
+
+    // Infinite loop to keep the main function running
+    for (;;) {}
+}
